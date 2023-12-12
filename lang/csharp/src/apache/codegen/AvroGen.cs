@@ -53,7 +53,7 @@ namespace Avro
             bool? isProtocol = null;
             string inputFile = null;
             string outputDir = null;
-            bool skipDirectoriesCreation = false;
+            CodeGenFlags codeGenFlags = CodeGenFlags.None;
             var namespaceMapping = new Dictionary<string, string>();
             for (int i = 0; i < args.Length; ++i)
             {
@@ -102,7 +102,15 @@ namespace Avro
                 }
                 else if (args[i] == "--skip-directories")
                 {
-                    skipDirectoriesCreation = true;
+                    codeGenFlags |= CodeGenFlags.SkipDirectoryCreation;
+                }
+                else if (args[i] == "--keep-original-namespace")
+                {
+                    codeGenFlags |= CodeGenFlags.KeepOriginalNamespaceInSchema;
+                }
+                else if (args[i] == "--generate-pascalcase")
+                {
+                    codeGenFlags |= CodeGenFlags.PascalCaseRecordProperties;
                 }
                 else if (outputDir == null)
                 {
@@ -136,9 +144,9 @@ namespace Avro
                 rc = 1;
             }
             else if (isProtocol.Value)
-                rc = GenProtocol(inputFile, outputDir, namespaceMapping);
+                rc = GenProtocol(inputFile, outputDir, new CodeGenOptions(namespaceMapping, codeGenFlags));
             else
-                rc = GenSchema(inputFile, outputDir, namespaceMapping, skipDirectoriesCreation);
+                rc = GenSchema(inputFile, outputDir, new CodeGenOptions(namespaceMapping, codeGenFlags));
 
             return rc;
         }
@@ -150,27 +158,29 @@ namespace Avro
                 "  avrogen -p <protocolfile> <outputdir> [--namespace <my.avro.ns:my.csharp.ns>]\n" +
                 "  avrogen -s <schemafile> <outputdir> [--namespace <my.avro.ns:my.csharp.ns>]\n\n" +
                 "Options:\n" +
-                "  -h --help        Show this screen.\n" +
-                "  -V --version     Show version.\n" +
-                "  --namespace      Map an Avro schema/protocol namespace to a C# namespace.\n" +
-                "                   The format is \"my.avro.namespace:my.csharp.namespace\".\n" +
-                "                   May be specified multiple times to map multiple namespaces.\n"  +
-                "  --skip-directories Skip creation of namespace directories. It will generate classes right inside output directory\n",
+                "  -h --help                  Show this screen.\n" +
+                "  -V --version               Show version.\n" +
+                "  --namespace                Map an Avro schema/protocol namespace to a C# namespace.\n" +
+                "                             The format is \"my.avro.namespace:my.csharp.namespace\".\n" +
+                "                             May be specified multiple times to map multiple namespaces.\n"  +
+                "  --skip-directories         Skip creation of namespace directories.\n" +
+                "                             It will generate classes right inside output directory.\n" +
+                "  --keep-original-namespace  Keep the original namespace in the generated schema.\n" +
+                "  --generate-pascalcase      Generate PascalCase properties.\n",
                 AppDomain.CurrentDomain.FriendlyName);
         }
 
-        public static int GenProtocol(string infile, string outdir,
-            IEnumerable<KeyValuePair<string, string>> namespaceMapping)
+        public static int GenProtocol(string infile, string outdir, CodeGenOptions codeGenOptions)
         {
             try
             {
                 string text = System.IO.File.ReadAllText(infile);
 
                 CodeGen codegen = new CodeGen();
-                codegen.AddProtocol(text, namespaceMapping);
+                codegen.AddProtocol(text, codeGenOptions);
 
                 codegen.GenerateCode();
-                codegen.WriteTypes(outdir);
+                codegen.WriteTypes(outdir, codeGenOptions);
             }
             catch (Exception ex)
             {
@@ -181,17 +191,16 @@ namespace Avro
             return 0;
         }
 
-        public static int GenSchema(string infile, string outdir,
-            IEnumerable<KeyValuePair<string, string>> namespaceMapping, bool skipDirectories)
+        public static int GenSchema(string infile, string outdir, CodeGenOptions codeGenOptions)
         {
             try
             {
                 string text = System.IO.File.ReadAllText(infile);
                 CodeGen codegen = new CodeGen();
-                codegen.AddSchema(text, namespaceMapping);
+                codegen.AddSchema(text, codeGenOptions);
 
                 codegen.GenerateCode();
-                codegen.WriteTypes(outdir, skipDirectories);
+                codegen.WriteTypes(outdir, codeGenOptions);
             }
             catch (Exception ex)
             {

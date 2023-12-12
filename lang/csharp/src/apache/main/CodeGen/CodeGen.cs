@@ -111,8 +111,18 @@ namespace Avro
         /// <param name="namespaceMapping">namespace mapping key value pairs.</param>
         public virtual void AddProtocol(string protocolText, IEnumerable<KeyValuePair<string, string>> namespaceMapping = null)
         {
+            AddProtocol(protocolText, new CodeGenOptions(namespaceMapping, CodeGenFlags.None));
+        }
+
+        /// <summary>
+        /// Parses and adds a protocol object to generate code for.
+        /// </summary>
+        /// <param name="protocolText">The protocol.</param>
+        /// <param name="codeGenOptions">code generation options.</param>
+        public virtual void AddProtocol(string protocolText, CodeGenOptions codeGenOptions)
+        {
             // Map namespaces
-            protocolText = ReplaceMappedNamespacesInSchema(protocolText, namespaceMapping);
+            protocolText = ReplaceMappedNamespacesInSchema(protocolText, codeGenOptions ?? CodeGenOptions.Empty);
             Protocol protocol = Protocol.Parse(protocolText);
             Protocols.Add(protocol);
         }
@@ -133,8 +143,18 @@ namespace Avro
         /// <param name="namespaceMapping">namespace mapping key value pairs.</param>
         public virtual void AddSchema(string schemaText, IEnumerable<KeyValuePair<string, string>> namespaceMapping = null)
         {
+            AddSchema(schemaText, new CodeGenOptions(namespaceMapping));
+        }
+
+        /// <summary>
+        /// Parses and adds a schema object to generate code for.
+        /// </summary>
+        /// <param name="schemaText">schema object.</param>
+        /// <param name="codeGenOptions">code generation options.</param>
+        public virtual void AddSchema(string schemaText, CodeGenOptions codeGenOptions)
+        {
             // Map namespaces
-            schemaText = ReplaceMappedNamespacesInSchema(schemaText, namespaceMapping);
+            schemaText = ReplaceMappedNamespacesInSchema(schemaText, codeGenOptions ?? CodeGenOptions.Empty);
             Schema schema = Schema.Parse(schemaText);
             Schemas.Add(schema);
         }
@@ -1185,7 +1205,17 @@ namespace Avro
         /// </summary>
         /// <param name="outputdir">name of directory to write to.</param>
         /// <param name="skipDirectories">skip creation of directories based on schema namespace</param>
-        public virtual void WriteTypes(string outputdir, bool skipDirectories = false)
+        public virtual void WriteTypes(string outputdir, bool skipDirectories)
+        {
+            WriteTypes(outputdir, new CodeGenOptions(null, skipDirectories ? CodeGenFlags.SkipDirectoryCreation : CodeGenFlags.None));
+        }
+
+        /// <summary>
+        /// Writes each types in each namespaces into individual files.
+        /// </summary>
+        /// <param name="outputdir">name of directory to write to.</param>
+        /// <param name="codeGenOptions">options for the code generations.</param>
+        public virtual void WriteTypes(string outputdir, CodeGenOptions codeGenOptions)
         {
             var cscp = new CSharpCodeProvider();
 
@@ -1200,7 +1230,7 @@ namespace Avro
                 var ns = nsc[i];
 
                 string dir = outputdir;
-                if (skipDirectories != true)
+                if (!codeGenOptions.Flags.HasFlag(CodeGenFlags.SkipDirectoryCreation))
                 {
                     foreach (string name in CodeGenUtil.Instance.UnMangle(ns.Name).Split('.'))
                     {
@@ -1235,10 +1265,10 @@ namespace Avro
         /// Replace namespace(s) in schema or protocol definition.
         /// </summary>
         /// <param name="input">input schema or protocol definition.</param>
-        /// <param name="namespaceMapping">namespace mappings object.</param>
-        private static string ReplaceMappedNamespacesInSchema(string input, IEnumerable<KeyValuePair<string, string>> namespaceMapping)
+        /// <param name="options">options to be used.</param>
+        private static string ReplaceMappedNamespacesInSchema(string input, CodeGenOptions options)
         {
-            if (namespaceMapping == null || input == null)
+            if (options.NamespaceMapping == null || input == null)
                 return input;
 
             // Replace namespace in "namespace" definitions:
@@ -1253,7 +1283,7 @@ namespace Avro
 
                 string ns = m.Groups[3].Value;
 
-                foreach (var mapping in namespaceMapping)
+                foreach (var mapping in options.NamespaceMapping)
                 {
                     // Full match
                     if (mapping.Key == ns)

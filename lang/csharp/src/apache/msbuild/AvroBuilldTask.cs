@@ -54,7 +54,7 @@ namespace Avro.msbuild
                 }
             }
 
-            codegen.WriteTypes(OutDir.ItemSpec);
+            codegen.WriteTypes(OutDir.ItemSpec, CodeGenOptions.Empty);
             return true;
         }
 

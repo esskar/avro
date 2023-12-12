@@ -325,7 +325,7 @@ namespace Avro.Test.AvroGen
                 System.IO.File.WriteAllText(schemaFileName, schema);
 
                 // Generate from schema file
-                Assert.That(AvroGenTool.GenSchema(schemaFileName, outputDir, namespaceMapping ?? new Dictionary<string, string>(), false), Is.EqualTo(0));
+                Assert.That(AvroGenTool.GenSchema(schemaFileName, outputDir, new CodeGenOptions(namespaceMapping ?? new Dictionary<string, string>())), Is.EqualTo(0));
 
                 // Check if all generated files exist
                 if (generatedFilesToCheck != null)
@@ -619,7 +619,7 @@ namespace Avro.Test.AvroGen
                 string schemaFileName = Path.Combine(outputDir, $"{uniqueId}.avsc");
                 System.IO.File.WriteAllText(schemaFileName, schema);
 
-                Assert.That(AvroGenTool.GenSchema(schemaFileName, outputDir, new Dictionary<string, string>(), false), Is.EqualTo(1));
+                Assert.That(AvroGenTool.GenSchema(schemaFileName, outputDir, new CodeGenOptions(new Dictionary<string, string>())), Is.EqualTo(1));
             }
             finally
             {
@@ -811,7 +811,7 @@ namespace Avro.Test.AvroGen
             })]
         public void GenerateSchemaWithSkipDirectoriesOption(string schema, IEnumerable<string> typeNamesToCheck, IEnumerable<string> generatedFilesToCheck)
         {
-            AvroGenHelper.TestSchema(schema, typeNamesToCheck, generatedFilesToCheck: generatedFilesToCheck, skipDirectories: true);
+            AvroGenHelper.TestSchema(schema, typeNamesToCheck, generatedFilesToCheck: generatedFilesToCheck, codeGenFlags: CodeGenFlags.SkipDirectoryCreation);
         }
     }
 }
